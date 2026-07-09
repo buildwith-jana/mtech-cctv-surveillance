@@ -49,36 +49,68 @@ def download_pistols_dataset(api_key: str, workspace: str, project: str, version
     return Path(dataset.location)
 
 
+def find_split_directories(download_path: Path) -> dict:
+    """
+    Recursively locate the train/valid/test split directories anywhere under
+    download_path, regardless of nesting depth. Roboflow's export layout is
+    not guaranteed to be flat -- it sometimes wraps the splits in an extra
+    project-name folder (e.g. download_path/Pistols-1/train/images instead
+    of download_path/train/images), and split naming can vary ("valid" vs
+    "val"). We identify a split directory by finding any "images" folder and
+    checking whether its parent directory name matches a known alias.
+
+    Returns: {"train": Path|None, "valid": Path|None, "test": Path|None}
+    where each Path (if found) is the split directory itself (the one that
+    directly contains "images" and "labels" subfolders).
+    """
+    aliases = {
+        "train": {"train", "training"},
+        "valid": {"valid", "val", "validation"},
+        "test": {"test", "testing"},
+    }
+    found = {"train": None, "valid": None, "test": None}
+
+    for images_dir in download_path.rglob("images"):
+        if not images_dir.is_dir():
+            continue
+        split_dir = images_dir.parent
+        dir_name = split_dir.name.lower()
+        for canonical, alias_set in aliases.items():
+            if dir_name in alias_set and found[canonical] is None:
+                found[canonical] = split_dir
+                print(f"[INFO]   Located '{canonical}' split at: {split_dir}")
+
+    return found
+
+
 def normalize_layout(download_path: Path):
     """
-    Roboflow exports as:
-        raw_download/train/images, raw_download/train/labels
-        raw_download/valid/images, raw_download/valid/labels
-        raw_download/test/images,  raw_download/test/labels
-        raw_download/data.yaml
-
-    We move these to a clean top-level structure:
+    Moves whatever split directories were located (train/valid/test, each
+    containing images/ and labels/) to a clean top-level structure:
         data/train/images, data/train/labels
         data/valid/images, data/valid/labels
         data/test/images,  data/test/labels
+
+    Works regardless of how deeply Roboflow nested the splits under
+    download_path, and regardless of "valid" vs "val" naming.
     """
-    print("[INFO] Normalizing folder layout ...")
-    for split in ["train", "valid", "test"]:
-        src = download_path / split
+    print("[INFO] Searching recursively for train/valid/test split directories ...")
+    split_dirs = find_split_directories(download_path)
+
+    for split, src in split_dirs.items():
         dst = DATA_DIR / split
-        if src.exists():
+        if src is not None:
             if dst.exists():
                 shutil.rmtree(dst)
             shutil.move(str(src), str(dst))
             print(f"[INFO]   {src} -> {dst}")
         else:
-            print(f"[WARN]   Split '{split}' not found in download, skipping.")
+            print(f"[WARN]   Split '{split}' not found anywhere under {download_path}, skipping.")
 
-    # Clean up the now-empty raw_download wrapper folder (Roboflow nests
-    # things one level deeper, e.g. raw_download/Pistols-1/...)
-    raw_root = DATA_DIR / "raw_download"
-    if raw_root.exists():
-        shutil.rmtree(raw_root, ignore_errors=True)
+    # Clean up whatever wrapper folder(s) Roboflow created during extraction,
+    # now that the split directories have been moved out of them.
+    if download_path.exists():
+        shutil.rmtree(download_path, ignore_errors=True)
 
 
 def count_images():
