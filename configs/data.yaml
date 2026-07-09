@@ -1,0 +1,15 @@
+# YOLO dataset configuration for Weapon (Pistol) Detection - Module 1
+# Paths are resolved relative to this file's parent's parent (project root)
+# when using Ultralytics' `path:` key, so keep this file at configs/data.yaml.
+
+path: ../data        # dataset root, relative to this file
+train: train/images
+val: valid/images
+test: test/images
+
+# Single-class detection for Module 1 (guns only).
+# Knife class will be added in Module 2 as class index 1.
+names:
+  0: pistol
+
+nc: 1

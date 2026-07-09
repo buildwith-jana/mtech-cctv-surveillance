@@ -1,0 +1,38 @@
+# Datasets (downloaded via scripts/download_dataset.py, not version controlled)
+data/*
+!data/.gitkeep
+
+# YOLO training runs (weights, logs, curves - large binary artifacts)
+runs/*
+!runs/.gitkeep
+
+# Generated outputs (regenerable from scripts)
+outputs/videos/*
+!outputs/videos/.gitkeep
+outputs/metrics/*
+!outputs/metrics/.gitkeep
+
+# Model weights
+*.pt
+*.onnx
+*.engine
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+env/
+*.egg-info/
+
+# Jupyter / Colab
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets - never commit API keys
+.env
+*.key
