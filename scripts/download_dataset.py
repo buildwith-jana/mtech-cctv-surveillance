@@ -140,14 +140,22 @@ def main():
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    download_path = download_pistols_dataset(
-        api_key=args.api_key,
-        workspace=args.workspace,
-        project=args.project,
-        version=args.version,
-    )
-    normalize_layout(download_path)
-    count_images()
+   download_path = download_pistols_dataset(
+    api_key=args.api_key,
+    workspace=args.workspace,
+    project=args.project,
+    version=args.version,
+)
+
+print("DOWNLOAD PATH:", download_path)
+
+import os
+for root, dirs, files in os.walk(download_path):
+    print(root)
+    if len(files):
+        print(" Files:", files[:5])
+
+exit()
     print("[DONE] Dataset ready at:", DATA_DIR)
 
 
